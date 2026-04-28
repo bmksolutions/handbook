@@ -34,6 +34,6 @@ jobs:
       - name: Install yamllint
         run: pip install yamllint
       - name: Lint workflow-templates/
-        run: yamllint -d "{extends: relaxed, rules: {line-length: disable, truthy: disable}}" workflow-templates/
+        run: 'yamllint -d "{extends: relaxed, rules: {line-length: disable, truthy: disable}}" workflow-templates/'
       - name: Lint own workflows
-        run: yamllint -d "{extends: relaxed, rules: {line-length: disable, truthy: disable}}" .github/workflows/
+        run: 'yamllint -d "{extends: relaxed, rules: {line-length: disable, truthy: disable}}" .github/workflows/'
