@@ -1,0 +1,67 @@
+name: Sync handbook
+on:
+  schedule:
+    - cron: '0 9 * * 1'           # Monday 09:00 UTC — weekly poll
+  workflow_dispatch:               # manual "sync now" button
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Get latest handbook tag
+        id: latest
+        run: |
+          LATEST=$(git ls-remote --tags --sort=-v:refname \
+            https://github.com/bmk-solutions/handbook.git \
+            | grep -v '\^{}' | head -1 | sed 's/.*refs\/tags\///')
+          if [ -z "$LATEST" ]; then
+            echo "::error::No tags found in handbook repo. Tag a release with 'git tag v1.0 && git push --tags'."
+            exit 1
+          fi
+          echo "tag=$LATEST" >> "$GITHUB_OUTPUT"
+
+      - name: Get currently synced version
+        id: current
+        run: |
+          CURRENT=$(cat docs/.handbook-version 2>/dev/null || echo "none")
+          echo "tag=$CURRENT" >> "$GITHUB_OUTPUT"
+
+      - name: Skip if up to date
+        if: steps.latest.outputs.tag == steps.current.outputs.tag
+        run: echo "Already on ${{ steps.latest.outputs.tag }} — nothing to do."
+
+      - name: Fetch handbook at latest tag
+        if: steps.latest.outputs.tag != steps.current.outputs.tag
+        run: |
+          rm -rf docs/handbook
+          git clone --depth 1 --branch "${{ steps.latest.outputs.tag }}" \
+            https://github.com/bmk-solutions/handbook.git docs/handbook
+          rm -rf docs/handbook/.git
+          mkdir -p docs
+          echo "${{ steps.latest.outputs.tag }}" > docs/.handbook-version
+
+      - name: Open PR
+        if: steps.latest.outputs.tag != steps.current.outputs.tag
+        uses: peter-evans/create-pull-request@v6
+        with:
+          branch: chore/sync-handbook
+          commit-message: "chore(docs): sync handbook to ${{ steps.latest.outputs.tag }}"
+          title: "Sync handbook to ${{ steps.latest.outputs.tag }}"
+          body: |
+            Auto-generated PR syncing `docs/handbook/` to handbook ${{ steps.latest.outputs.tag }}.
+
+            - Previously synced: ${{ steps.current.outputs.tag }}
+            - Now syncing: ${{ steps.latest.outputs.tag }}
+
+            Review the diff and merge if compatible with this project. Project-specific
+            overrides in `docs/conventions.md` are not affected.
+
+            See the handbook's CHANGELOG.md for details on what changed.
+          labels: |
+            documentation
+            no-changelog
