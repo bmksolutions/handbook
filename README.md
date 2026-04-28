@@ -14,6 +14,24 @@ sync (see `conventions.md` § Cross-Project Conventions).
 - `decisions/` — handbook-level ADRs (rationale for the patterns above).
 - `workflow-templates/` — reusable GitHub Actions workflows.
 
+## Repository visibility
+
+This handbook is a **public** repository, and the sync setup assumes that. The choice is deliberate:
+
+- Contents are conventions, templates, and patterns — nothing customer-specific or sensitive.
+- Public means zero authentication overhead. Consumer projects clone and read tags from `https://github.com/bmksolutions/handbook.git` without tokens, secrets, or per-repo configuration.
+- Organization-level secrets (the natural "private but no per-repo setup" path) are a paid-tier GitHub feature, so going public sidesteps that cost as well.
+- A new bmksolutions project works the moment it copies `workflow-templates/sync-handbook.yml`. No setup steps an engineer can forget.
+
+### If the handbook ever needs to go private
+
+Two paths, in increasing order of polish:
+
+1. **Org-level PAT secret** (requires GitHub Team or higher): create a fine-grained PAT scoped to this repo with `Contents: Read-only`, add it as an organization secret named `HANDBOOK_READ_TOKEN` with "All repositories" access, and patch the two `git ls-remote` / `git clone` steps in `workflow-templates/sync-handbook.yml` to authenticate via `https://x-access-token:${TOKEN}@github.com/bmksolutions/handbook.git`. One-time setup, yearly PAT renewal.
+2. **GitHub App on the bmksolutions org** (further future upgrade): replaces the PAT with auto-rotated short-lived tokens. Org secrets become `HANDBOOK_APP_ID` and `HANDBOOK_APP_PRIVATE_KEY`; workflow uses `actions/create-github-app-token` to mint a token before the clone steps. No expiry to manage, not tied to any individual's account.
+
+Don't pre-emptively go private. Until something in the handbook becomes genuinely sensitive, public is cheaper in every dimension that matters.
+
 ## Adopting in a new project
 
 For a project that doesn't exist yet, before you write any feature code:
@@ -22,7 +40,7 @@ For a project that doesn't exist yet, before you write any feature code:
 2. Add the sync workflow:
    ```bash
    mkdir -p .github/workflows
-   curl -fsSL https://raw.githubusercontent.com/bmk-solutions/handbook/main/workflow-templates/sync-handbook.yml \
+   curl -fsSL https://raw.githubusercontent.com/bmksolutions/handbook/main/workflow-templates/sync-handbook.yml \
      -o .github/workflows/sync-handbook.yml
    git add .github/workflows/sync-handbook.yml
    git commit -m "chore: add handbook sync workflow"
@@ -53,34 +71,31 @@ For a project that doesn't exist yet, before you write any feature code:
 For a project that already has code, history, and possibly its own deploy setup:
 
 1. **Audit what's already there.** Check for an existing `CLAUDE.md`, `README.md`, `CHANGELOG.md`, `docs/`, and any `.github/workflows/`. Understand what overlaps with the handbook before importing.
-2. **Add the sync workflow** (same as new projects, step 2 above):
-   ```bash
-   mkdir -p .github/workflows
-   curl -fsSL https://raw.githubusercontent.com/bmk-solutions/handbook/main/workflow-templates/sync-handbook.yml \
-     -o .github/workflows/sync-handbook.yml
-   ```
-3. **Commit and push** on a feature branch (don't go straight to `master` — let CI run first):
+2. **Add the sync workflow** on a feature branch:
    ```bash
    git checkout -b chore/adopt-handbook
+   mkdir -p .github/workflows
+   curl -fsSL https://raw.githubusercontent.com/bmksolutions/handbook/main/workflow-templates/sync-handbook.yml \
+     -o .github/workflows/sync-handbook.yml
    git add .github/workflows/sync-handbook.yml
    git commit -m "chore: add handbook sync workflow"
    git push -u origin chore/adopt-handbook
    ```
-4. **Open a PR** for the workflow file, get review, merge.
-5. **Trigger the workflow** via GitHub's UI to seed `docs/handbook/`. Merge the resulting auto-sync PR.
-6. **Reconcile existing docs**:
+3. **Open a PR** for the workflow file, get review, merge.
+4. **Trigger the workflow** via GitHub's UI to seed `docs/handbook/`. Merge the resulting auto-sync PR.
+5. **Reconcile existing docs**:
    - If the project has a `CLAUDE.md`, compare it against the structure in `docs/handbook/conventions.md`. Add any missing required sections; leave the project-specific content alone.
    - If the project has `docs/` already, leave the existing files in place. Add `docs/conventions.md` as a thin overrides file noting where this project deviates from the handbook (e.g. "we don't use Livewire, see `docs/frontend.md`").
    - If existing ADRs use a different format, leave them alone — never renumber. New ADRs follow the handbook template going forward.
-7. **Backfill `CHANGELOG.md` if missing.** If you've been releasing without one, start with a `[Unreleased]` block plus a single `[YYYY.MM.DD]` entry summarizing the current production state. Don't try to reconstruct full history — the changelog starts now.
-8. **Add the PR template** if not already present:
+6. **Backfill `CHANGELOG.md` if missing.** If you've been releasing without one, start with a `[Unreleased]` block plus a single `[YYYY.MM.DD]` entry summarizing the current production state. Don't try to reconstruct full history — the changelog starts now.
+7. **Add the PR template** if not already present:
    ```bash
    cp docs/handbook/pr-template.md .github/PULL_REQUEST_TEMPLATE.md
    ```
    If a template exists, merge the changelog reminder section into it.
-9. **Add the changelog enforcement workflow** if relevant. On existing repos, expect failed checks for in-flight PRs that predate the workflow — apply the `no-changelog` label to grandfather them.
-10. **Implement the changelog system** if the project doesn't have one yet (see `docs/handbook/changelog-system.md`). This is a separate, larger effort and can land in subsequent PRs.
-11. **Audit deploy scripts** against `docs/handbook/deployment-playbook.md`. If `php artisan changelog:publish` isn't in the deploy script yet, add it once the changelog system is implemented (not before — the command won't exist).
+8. **Add the changelog enforcement workflow** if relevant. On existing repos, expect failed checks for in-flight PRs that predate the workflow — apply the `no-changelog` label to grandfather them.
+9. **Implement the changelog system** if the project doesn't have one yet (see `docs/handbook/changelog-system.md`). This is a separate, larger effort and can land in subsequent PRs.
+10. **Audit deploy scripts** against `docs/handbook/deployment-playbook.md`. If `php artisan changelog:publish` isn't in the deploy script yet, add it once the changelog system is implemented (not before — the command won't exist).
 
 Land changes incrementally. Adopting the handbook is not a single-PR migration; it's a sequence of small, reviewable changes. Order of dependency:
 
