@@ -23,7 +23,7 @@ repo-root/
 │       └── sync-handbook.yml   ← weekly auto-sync of docs/handbook/ (see Cross-Project Conventions)
 └── docs/
     ├── conventions.md     ← Project-specific overrides ONLY (kept short)
-    ├── handbook/          ← Auto-synced mirror of bmk-solutions/handbook (DO NOT hand-edit)
+    ├── handbook/          ← Auto-synced mirror of bmksolutions/handbook (DO NOT hand-edit)
     │   ├── conventions.md
     │   └── ...
     ├── .handbook-version  ← Single line, e.g. "v1.3" — tracks what's synced
@@ -115,7 +115,7 @@ This handbook is the canonical source for cross-cutting conventions. Each consum
 
 ### Architecture
 
-- **Canonical source**: `github.com/bmk-solutions/handbook` (this repo).
+- **Canonical source**: `github.com/bmksolutions/handbook` (this repo, public).
 - **Mirrored into each project at**: `docs/handbook/` (auto-synced — projects must not hand-edit).
 - **Project-specific overrides**: `docs/conventions.md` (a thin file in each project, kept short).
 - **Sync state**: `docs/.handbook-version` (single line — the handbook git tag the project is synced to).
@@ -190,7 +190,7 @@ The sync PR is internal docs maintenance, not a user-facing change. The workflow
 
 ### Changing the canonical handbook
 
-1. Open a PR against `bmk-solutions/handbook`.
+1. Open a PR against `bmksolutions/handbook`.
 2. Get review from at least one other engineer (conventions affect every project — second pair of eyes is cheap).
 3. Merge to `main`.
 4. Bump this handbook's `CHANGELOG.md` and tag a new version: `git tag v1.X && git push --tags`.

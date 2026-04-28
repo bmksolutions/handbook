@@ -17,7 +17,7 @@ jobs:
         id: latest
         run: |
           LATEST=$(git ls-remote --tags --sort=-v:refname \
-            https://github.com/bmk-solutions/handbook.git \
+            https://github.com/bmksolutions/handbook.git \
             | grep -v '\^{}' | head -1 | sed 's/.*refs\/tags\///')
           if [ -z "$LATEST" ]; then
             echo "::error::No tags found in handbook repo. Tag a release with 'git tag v1.0 && git push --tags'."
@@ -40,7 +40,7 @@ jobs:
         run: |
           rm -rf docs/handbook
           git clone --depth 1 --branch "${{ steps.latest.outputs.tag }}" \
-            https://github.com/bmk-solutions/handbook.git docs/handbook
+            https://github.com/bmksolutions/handbook.git docs/handbook
           rm -rf docs/handbook/.git
           mkdir -p docs
           echo "${{ steps.latest.outputs.tag }}" > docs/.handbook-version
